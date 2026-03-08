@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çalışma Saatleri Takibi</title>
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⏱️ Çalışma Saatleri Takibi</h1>
+            <p>Günlük çalışma saatlerinizi kolayca takip edin.</p>
+        </header>
+
+        <section class="form-section">
+            <form id="tracker-form">
+                <div class="form-group">
+                    <label for="work-date">Tarih:</label>
+                    <input type="date" id="work-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="start-time">Başlangıç Saati:</label>
+                    <input type="time" id="start-time" required>
+                </div>
+                <div class="form-group">
+                    <label for="end-time">Bitiş Saati:</label>
+                    <input type="time" id="end-time" required>
+                </div>
+                <button type="submit" id="submit-btn">Kayıt Ekle</button>
+            </form>
+        </section>
+
+        <section class="summary-section">
+            <div class="summary-card">
+                <h3>Bu Ayın Toplamı</h3>
+                <p id="monthly-total" class="total-number">0 saat</p>
+            </div>
+            <div class="summary-card">
+                <h3>Bu Haftanın Toplamı</h3>
+                <p id="weekly-total" class="total-number">0 saat</p>
+            </div>
+        </section>
+
+        <section class="overtime-section" style="margin-bottom: 30px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px;">
+            <h2 style="color: #166534; margin-bottom: 15px; font-size: 1.2rem;">Haftalık Mesai Özeti (30 Saat Üzeri)</h2>
+            <div id="overtime-container" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Overtime weekly data will be inserted here -->
+                <p style="color: #6b7280; font-style: italic;">Henüz mesai kaydı bulunmuyor.</p>
+            </div>
+        </section>
+
+        <section class="entries-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin-bottom: 0;">Çalışma Kayıtları</h2>
+                <button id="export-btn" style="background-color: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">Excel'e Aktar</button>
+            </div>
+            <div class="table-container">
+                <table id="entries-table">
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Başlangıç Saati</th>
+                            <th>Bitiş Saati</th>
+                            <th>Toplam Saat</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entries-body">
+                        <!-- Entries will be added here via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => console.log('ServiceWorker registered'))
+                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+            });
+        }
+    </script>
+</body>
+</html>
