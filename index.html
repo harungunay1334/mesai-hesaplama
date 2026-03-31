@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Çalışma Saatleri Takibi</title>
+    <title>Calisma Saatleri Takibi</title>
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
@@ -14,8 +14,9 @@
 <body>
     <div class="container">
         <header>
-            <h1>⏱️ Çalışma Saatleri Takibi</h1>
-            <p>Günlük çalışma saatlerinizi kolayca takip edin.</p>
+            <h1>&#9201;&#65039; Calisma Saatleri Takibi</h1>
+            <p>Gunluk calisma saatlerinizi kolayca takip edin.</p>
+            <button type="button" id="archive-btn" style="margin-top: 10px; background-color: #7c3aed; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;">&#128197; Gecmis Aylar Arsivi</button>
         </header>
 
         <section class="form-section">
@@ -25,39 +26,58 @@
                     <input type="date" id="work-date" required>
                 </div>
                 <div class="form-group">
-                    <label for="start-time">Başlangıç Saati:</label>
+                    <label for="start-time">Baslangic Saati:</label>
                     <input type="time" id="start-time" required>
                 </div>
                 <div class="form-group">
-                    <label for="end-time">Bitiş Saati:</label>
+                    <label for="end-time">Bitis Saati:</label>
                     <input type="time" id="end-time" required>
                 </div>
-                <button type="submit" id="submit-btn">Kayıt Ekle</button>
+                <div class="form-group" style="flex-basis: 100%;">
+                    <label for="daily-doc">Gunun Ozeti / Dokumantasyonu (Opsiyonel):</label>
+                    <textarea id="daily-doc" rows="3" placeholder="Bugun yaptiginiz isleri buraya yazabilirsiniz..."></textarea>
+                </div>
+                <button type="submit" id="submit-btn" style="margin-top: auto;">Kayit Ekle</button>
             </form>
         </section>
 
         <section class="summary-section">
             <div class="summary-card">
-                <h3>Bu Ayın Toplamı</h3>
+                <h3>Bu Ayin Toplami</h3>
                 <p id="monthly-total" class="total-number">0 saat</p>
             </div>
             <div class="summary-card">
-                <h3>Bu Haftanın Toplamı</h3>
+                <h3>Bu Haftanin Toplami</h3>
                 <p id="weekly-total" class="total-number">0 saat</p>
             </div>
         </section>
 
         <section class="overtime-section" style="margin-bottom: 30px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px;">
-            <h2 style="color: #166534; margin-bottom: 15px; font-size: 1.2rem;">Haftalık Mesai Özeti (30 Saat Üzeri)</h2>
+            <h2 style="color: #166534; margin-bottom: 15px; font-size: 1.2rem;">Haftalik Mesai Ozeti (30 Saat Uzeri)</h2>
             <div id="overtime-container" style="display: flex; flex-direction: column; gap: 10px;">
-                <!-- Overtime weekly data will be inserted here -->
-                <p style="color: #6b7280; font-style: italic;">Henüz mesai kaydı bulunmuyor.</p>
+                <p style="color: #6b7280; font-style: italic;">Henuz mesai kaydi bulunmuyor.</p>
             </div>
+        </section>
+
+        <section class="backup-section" style="margin-bottom: 30px; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px;">
+            <h2 style="color: #1e40af; margin-bottom: 15px; font-size: 1.2rem;">&#128193; Aylik Puantaj Yedekleme / Yukleme</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                <div class="form-group" style="min-width: 150px;">
+                    <label for="backup-month">Ay Secin:</label>
+                    <input type="month" id="backup-month">
+                </div>
+                <button type="button" id="backup-btn" style="background-color: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; height: 42px;">Secili Ayi Yedekle</button>
+                <div style="border-left: 2px solid #bfdbfe; padding-left: 15px;">
+                    <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 5px;">Yedek Dosyasi Yukle:</label>
+                    <input type="file" id="restore-file" accept=".json" style="font-size: 0.9rem;">
+                </div>
+            </div>
+            <p id="backup-status" style="margin-top: 10px; font-size: 0.85rem; color: #6b7280;"></p>
         </section>
 
         <section class="entries-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 style="margin-bottom: 0;">Çalışma Kayıtları</h2>
+                <h2 style="margin-bottom: 0;">Calisma Kayitlari</h2>
                 <button id="export-btn" style="background-color: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">Excel'e Aktar</button>
             </div>
             <div class="table-container">
@@ -65,29 +85,40 @@
                     <thead>
                         <tr>
                             <th>Tarih</th>
-                            <th>Başlangıç Saati</th>
-                            <th>Bitiş Saati</th>
+                            <th>Baslangic Saati</th>
+                            <th>Bitis Saati</th>
                             <th>Toplam Saat</th>
-                            <th>İşlemler</th>
+                            <th>Islemler</th>
                         </tr>
                     </thead>
                     <tbody id="entries-body">
-                        <!-- Entries will be added here via JavaScript -->
                     </tbody>
                 </table>
             </div>
         </section>
     </div>
+
+    <!-- GECMIS AYLAR MODAL -->
+    <div id="archive-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; overflow-y:auto;">
+        <div style="max-width:900px; margin:30px auto; background:white; border-radius:12px; padding:30px; position:relative; min-height:200px;">
+            <button id="archive-close-btn" style="position:absolute; top:15px; right:15px; background:#ef4444; color:white; border:none; border-radius:50%; width:36px; height:36px; font-size:1.2rem; cursor:pointer; font-weight:bold;">X</button>
+            <div id="archive-content">
+                <!-- JS ile doldurulacak -->
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
     <script>
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            window.addEventListener('load', function() {
                 navigator.serviceWorker.register('./service-worker.js')
-                    .then(registration => console.log('ServiceWorker registered'))
-                    .catch(err => console.log('ServiceWorker registration failed: ', err));
+                    .then(function(registration) { console.log('ServiceWorker registered'); })
+                    .catch(function(err) { console.log('ServiceWorker registration failed: ', err); });
             });
         }
     </script>
 </body>
 </html>
+
