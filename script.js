@@ -31,9 +31,14 @@ function init() {
     // Attempt to get saved data from the browser's localStorage
     const storedEntries = localStorage.getItem('workEntries');
     if (storedEntries) {
-        // Convert the string back into a JavaScript array
-        workEntries = JSON.parse(storedEntries).map(normalizeEntryHours);
-        localStorage.setItem('workEntries', JSON.stringify(workEntries));
+        try {
+            // Convert the string back into a JavaScript array
+            workEntries = JSON.parse(storedEntries).map(normalizeEntryHours);
+            localStorage.setItem('workEntries', JSON.stringify(workEntries));
+        } catch (e) {
+            console.error('Kayıtlar yüklenirken hata oluştu, eski veriler korunuyor:', e);
+            workEntries = JSON.parse(storedEntries); // Eski veriyi geri yükle
+        }
     }
 
     // Set the default date input to today's date
@@ -515,6 +520,14 @@ backupBtn.addEventListener('click', function() {
 restoreFileInput.addEventListener('change', function(e) {
     var file = e.target.files[0];
     if (!file) return;
+
+    // Dosya turunu kontrol et
+    if (!file.name.toLowerCase().endsWith('.json')) {
+        backupStatus.textContent = 'Lutfen gecerli bir JSON yedek dosyasi secin.';
+        backupStatus.style.color = '#dc2626';
+        restoreFileInput.value = '';
+        return;
+    }
 
     var reader = new FileReader();
     reader.onload = function(event) {
