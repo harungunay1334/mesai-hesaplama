@@ -456,15 +456,15 @@ window.exportWord = function (id) {
     var postHtml = "</body></html>";
     var htmlContent = preHtml + html + postHtml;
 
-    var blob = new Blob(['\ufeff', htmlContent], {
-        type: 'application/msword'
+    var blob = new Blob([htmlContent], {
+        type: 'text/html;charset=utf-8'
     });
 
     var downloadLink = document.createElement("a");
     document.body.appendChild(downloadLink);
     var url = URL.createObjectURL(blob);
     downloadLink.href = url;
-    downloadLink.download = 'Gunluk_Rapor_' + entry.date + '.doc';
+    downloadLink.download = 'Gunluk_Rapor_' + entry.date + '.html';
     downloadLink.click();
     document.body.removeChild(downloadLink);
 };
