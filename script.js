@@ -523,9 +523,12 @@ restoreFileInput.addEventListener('change', function(e) {
     var file = e.target.files[0];
     if (!file) return;
 
-    // Dosya turunu kontrol et
-    if (!file.name.toLowerCase().endsWith('.json')) {
-        backupStatus.textContent = 'Lutfen gecerli bir JSON yedek dosyasi secin.';
+    var fileName = file.name.toLowerCase();
+    var isJson = fileName.endsWith('.json');
+    var isCsv = fileName.endsWith('.csv');
+
+    if (!isJson && !isCsv) {
+        backupStatus.textContent = 'Lutfen gecerli bir JSON veya CSV yedek dosyasi secin.';
         backupStatus.style.color = '#dc2626';
         restoreFileInput.value = '';
         return;
@@ -534,41 +537,100 @@ restoreFileInput.addEventListener('change', function(e) {
     var reader = new FileReader();
     reader.onload = function(event) {
         try {
-            var data = JSON.parse(event.target.result);
-
-            if (!data.entries || !Array.isArray(data.entries)) {
-                backupStatus.textContent = 'Gecersiz yedek dosyasi. Lutfen dogru dosyayi secin.';
-                backupStatus.style.color = '#dc2626';
-                return;
-            }
-
-            // Mevcut ID'leri topla (ayni kaydi tekrar eklememe icin)
-            var existingIds = {};
-            workEntries.forEach(function(entry) {
-                existingIds[entry.id] = true;
-            });
-
             var addedCount = 0;
-            data.entries.forEach(function(entry) {
-                if (!existingIds[entry.id]) {
-                    normalizeEntryHours(entry);
-                    workEntries.push(entry);
-                    addedCount++;
+
+            if (isJson) {
+                var data = JSON.parse(event.target.result);
+
+                if (!data.entries || !Array.isArray(data.entries)) {
+                    backupStatus.textContent = 'Gecersiz yedek dosyasi. Lutfen dogru dosyayi secin.';
+                    backupStatus.style.color = '#dc2626';
+                    return;
                 }
-            });
+
+                // Mevcut ID'leri topla (ayni kaydi tekrar eklememe icin)
+                var existingIds = {};
+                workEntries.forEach(function(entry) {
+                    existingIds[entry.id] = true;
+                });
+
+                data.entries.forEach(function(entry) {
+                    if (!existingIds[entry.id]) {
+                        normalizeEntryHours(entry);
+                        workEntries.push(entry);
+                        addedCount++;
+                    }
+                });
+
+                var monthLabel = data.monthLabel || data.month || 'Bilinmeyen ay';
+                if (addedCount > 0) {
+                    backupStatus.textContent = monthLabel + ' puantaji basariyla yuklendi. ' + addedCount + ' yeni kayit eklendi.';
+                    backupStatus.style.color = '#059669';
+                } else {
+                    backupStatus.textContent = monthLabel + ' puantajindaki tum kayitlar zaten mevcut. Yeni kayit eklenmedi.';
+                    backupStatus.style.color = '#d97706';
+                }
+            } else if (isCsv) {
+                // CSV parse
+                var csvText = event.target.result;
+                var lines = csvText.split('\n').filter(function(line) { return line.trim().length > 0; });
+
+                if (lines.length < 2) {
+                    backupStatus.textContent = 'CSV dosyasi bos veya gecersiz.';
+                    backupStatus.style.color = '#dc2626';
+                    return;
+                }
+
+                // Baslik kontrol
+                var header = lines[0].split(';');
+                if (header.length < 5 || header[0] !== 'Tarih' || header[2] !== 'Baslangic Saati' || header[3] !== 'Bitis Saati') {
+                    backupStatus.textContent = 'CSV dosyasi beklenen formatta degil.';
+                    backupStatus.style.color = '#dc2626';
+                    return;
+                }
+
+                // Mevcut tarihleri topla (ayni tarihte tekrar eklememe icin)
+                var existingDates = {};
+                workEntries.forEach(function(entry) {
+                    existingDates[entry.date] = true;
+                });
+
+                for (var i = 1; i < lines.length; i++) {
+                    var parts = lines[i].split(';');
+                    if (parts.length >= 5) {
+                        var date = parts[0].trim();
+                        var startTime = parts[2].trim();
+                        var endTime = parts[3].trim();
+
+                        if (date && startTime && endTime && !existingDates[date]) {
+                            var hours = calculateHours(startTime, endTime);
+                            var newEntry = {
+                                id: Date.now().toString() + '_' + i, // Benzersiz ID
+                                date: date,
+                                startTime: startTime,
+                                endTime: endTime,
+                                hours: hours,
+                                dailyDoc: ''
+                            };
+                            workEntries.push(newEntry);
+                            addedCount++;
+                            existingDates[date] = true; // Aynı tarihte tekrar ekleme
+                        }
+                    }
+                }
+
+                if (addedCount > 0) {
+                    backupStatus.textContent = 'CSV puantaji basariyla yuklendi. ' + addedCount + ' yeni kayit eklendi.';
+                    backupStatus.style.color = '#059669';
+                } else {
+                    backupStatus.textContent = 'CSV puantajindaki tum kayitlar zaten mevcut. Yeni kayit eklenmedi.';
+                    backupStatus.style.color = '#d97706';
+                }
+            }
 
             saveAndRender();
-
-            var monthLabel = data.monthLabel || data.month || 'Bilinmeyen ay';
-            if (addedCount > 0) {
-                backupStatus.textContent = monthLabel + ' puantaji basariyla yuklendi. ' + addedCount + ' yeni kayit eklendi.';
-                backupStatus.style.color = '#059669';
-            } else {
-                backupStatus.textContent = monthLabel + ' puantajindaki tum kayitlar zaten mevcut. Yeni kayit eklenmedi.';
-                backupStatus.style.color = '#d97706';
-            }
         } catch (err) {
-            backupStatus.textContent = 'Dosya okunamadi. Lutfen gecerli bir JSON dosyasi secin.';
+            backupStatus.textContent = 'Dosya okunamadi. Lutfen gecerli bir dosya secin.';
             backupStatus.style.color = '#dc2626';
         }
     };
