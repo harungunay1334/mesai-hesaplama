@@ -68,8 +68,18 @@
                 </div>
                 <button type="button" id="backup-btn" style="background-color: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; height: 42px;">Secili Ayi Yedekle</button>
                 <div style="border-left: 2px solid #bfdbfe; padding-left: 15px;">
-                    <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 5px;">Yedek Dosyasi Yukle:</label>
-                    <input type="file" id="restore-file" accept=".json" style="font-size: 0.9rem;">
+                    <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 5px;">Yedek Dosyasi Yukle (JSON / CSV):</label>
+                    <!-- accept: mobil tarayicilar icin acik MIME tipleri zorunlu -->
+                    <input type="file" id="restore-file"
+                        accept=".json,.csv,application/json,text/csv,text/comma-separated-values,text/plain"
+                        style="display:none;">
+                    <label for="restore-file" id="restore-file-label"
+                        style="display:inline-block; background-color:#2563eb; color:white; border:none;
+                               padding:10px 15px; border-radius:6px; cursor:pointer; font-weight:600;
+                               font-size:0.9rem; height:42px; line-height:22px; user-select:none;">
+                        &#128194; Dosya Sec
+                    </label>
+                    <span id="restore-file-name" style="margin-left:10px; font-size:0.85rem; color:#4b5563;"></span>
                 </div>
             </div>
             <p id="backup-status" style="margin-top: 10px; font-size: 0.85rem; color: #6b7280;"></p>
