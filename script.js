@@ -29,17 +29,21 @@ function normalizeEntryHours(entry) {
 // Initialize the app
 function init() {
     // Attempt to get saved data from the browser's localStorage
-    const storedEntries = localStorage.getItem('workEntries');
+    // Veriler 'workEntries' anahtarında saklanır — kod güncellemeleri bu veriyi SİLMEZ.
+    var storedEntries = localStorage.getItem('workEntries');
     if (storedEntries) {
         try {
             // Convert the string back into a JavaScript array and normalize hours
-            const parsedEntries = JSON.parse(storedEntries);
+            var parsedEntries = JSON.parse(storedEntries);
             workEntries = parsedEntries.map(normalizeEntryHours);
             localStorage.setItem('workEntries', JSON.stringify(workEntries));
         } catch (e) {
             console.error('Kayıtlar yüklenirken hata oluştu, eski veriler korunuyor:', e);
-            // Eski veriyi olduğu gibi yükle
-            workEntries = JSON.parse(storedEntries);
+            try {
+                workEntries = JSON.parse(storedEntries);
+            } catch(e2) {
+                workEntries = [];
+            }
         }
     }
 
@@ -530,9 +534,13 @@ restoreFileInput.addEventListener('change', function(e) {
     if (!isJson && !isCsv) {
         backupStatus.textContent = 'Lutfen gecerli bir JSON veya CSV yedek dosyasi secin.';
         backupStatus.style.color = '#dc2626';
-        restoreFileInput.value = '';
+        // Dosya secimini sifirla
+        setTimeout(function() { restoreFileInput.value = ''; }, 100);
         return;
     }
+
+    backupStatus.textContent = 'Dosya okunuyor...';
+    backupStatus.style.color = '#2563eb';
 
     var reader = new FileReader();
     reader.onload = function(event) {
@@ -545,6 +553,8 @@ restoreFileInput.addEventListener('change', function(e) {
                 if (!data.entries || !Array.isArray(data.entries)) {
                     backupStatus.textContent = 'Gecersiz yedek dosyasi. Lutfen dogru dosyayi secin.';
                     backupStatus.style.color = '#dc2626';
+                    // Dosya secimini sifirla
+                    setTimeout(function() { restoreFileInput.value = ''; }, 100);
                     return;
                 }
 
@@ -571,21 +581,24 @@ restoreFileInput.addEventListener('change', function(e) {
                     backupStatus.style.color = '#d97706';
                 }
             } else if (isCsv) {
-                // CSV parse
-                var csvText = event.target.result;
+                // BOM karakterini temizle
+                var csvText = event.target.result.replace(/^\uFEFF/, '');
                 var lines = csvText.split('\n').filter(function(line) { return line.trim().length > 0; });
 
                 if (lines.length < 2) {
                     backupStatus.textContent = 'CSV dosyasi bos veya gecersiz.';
                     backupStatus.style.color = '#dc2626';
+                    setTimeout(function() { restoreFileInput.value = ''; }, 100);
                     return;
                 }
 
-                // Baslik kontrol
+                // Baslik kontrol — BOM temizlendikten sonra kontrol et
                 var header = lines[0].split(';');
-                if (header.length < 5 || header[0] !== 'Tarih' || header[2] !== 'Baslangic Saati' || header[3] !== 'Bitis Saati') {
-                    backupStatus.textContent = 'CSV dosyasi beklenen formatta degil.';
+                var firstCol = header[0].trim();
+                if (header.length < 4 || firstCol !== 'Tarih') {
+                    backupStatus.textContent = 'CSV dosyasi beklenen formatta degil. (Baslik: ' + firstCol + ')';
                     backupStatus.style.color = '#dc2626';
+                    setTimeout(function() { restoreFileInput.value = ''; }, 100);
                     return;
                 }
 
@@ -596,16 +609,16 @@ restoreFileInput.addEventListener('change', function(e) {
                 });
 
                 for (var i = 1; i < lines.length; i++) {
-                    var parts = lines[i].split(';');
-                    if (parts.length >= 5) {
-                        var date = parts[0].trim();
-                        var startTime = parts[2].trim();
-                        var endTime = parts[3].trim();
+                    var csvParts = lines[i].split(';');
+                    if (csvParts.length >= 4) {
+                        var date = csvParts[0].trim();
+                        var startTime = csvParts[2].trim();
+                        var endTime = csvParts[3].trim();
 
                         if (date && startTime && endTime && !existingDates[date]) {
                             var hours = calculateHours(startTime, endTime);
                             var newEntry = {
-                                id: Date.now().toString() + '_' + i, // Benzersiz ID
+                                id: Date.now().toString() + '_' + i,
                                 date: date,
                                 startTime: startTime,
                                 endTime: endTime,
@@ -614,7 +627,7 @@ restoreFileInput.addEventListener('change', function(e) {
                             };
                             workEntries.push(newEntry);
                             addedCount++;
-                            existingDates[date] = true; // Aynı tarihte tekrar ekleme
+                            existingDates[date] = true;
                         }
                     }
                 }
@@ -630,14 +643,21 @@ restoreFileInput.addEventListener('change', function(e) {
 
             saveAndRender();
         } catch (err) {
-            backupStatus.textContent = 'Dosya okunamadi. Lutfen gecerli bir dosya secin.';
+            console.error('Restore error:', err);
+            backupStatus.textContent = 'Dosya okunamadi: ' + err.message;
             backupStatus.style.color = '#dc2626';
         }
+        // Dosya okuma tamamlandiktan SONRA sifirla
+        setTimeout(function() { restoreFileInput.value = ''; }, 200);
     };
-    reader.readAsText(file);
 
-    // Dosya secimini sifirla (ayni dosyayi tekrar secebilmek icin)
-    restoreFileInput.value = '';
+    reader.onerror = function() {
+        backupStatus.textContent = 'Dosya okuma hatasi. Lutfen tekrar deneyin.';
+        backupStatus.style.color = '#dc2626';
+        setTimeout(function() { restoreFileInput.value = ''; }, 200);
+    };
+
+    reader.readAsText(file, 'UTF-8');
 });
 
 // --- GECMIS AYLAR ARSIVI ---
