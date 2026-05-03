@@ -523,26 +523,41 @@ backupBtn.addEventListener('click', function() {
 });
 
 // --- YEDEK DOSYASI YUKLEME ---
+// Secilen dosya adini goster
+var restoreFileNameEl = document.getElementById('restore-file-name');
+
 restoreFileInput.addEventListener('change', function(e) {
     var file = e.target.files[0];
     if (!file) return;
 
+    // Dosya adini goster (mobil UX icin)
+    if (restoreFileNameEl) {
+        restoreFileNameEl.textContent = file.name;
+    }
+
     var fileName = file.name.toLowerCase();
-    var isJson = fileName.endsWith('.json');
-    var isCsv = fileName.endsWith('.csv');
+    var mimeType = (file.type || '').toLowerCase();
+
+    // Uzantiya gore kontrol et; uzanti yoksa MIME tipine bak (mobil icin)
+    var isJson = fileName.endsWith('.json') || mimeType.includes('json');
+    var isCsv  = fileName.endsWith('.csv')
+               || mimeType.includes('csv')
+               || mimeType.includes('comma-separated')
+               || mimeType === 'text/plain'; // iOS bazen CSV'yi text/plain verir
 
     if (!isJson && !isCsv) {
-        backupStatus.textContent = 'Lutfen gecerli bir JSON veya CSV yedek dosyasi secin.';
+        backupStatus.textContent = 'Lutfen .json veya .csv uzantili bir dosya secin. (Secilen: ' + file.name + ')';
         backupStatus.style.color = '#dc2626';
-        // Dosya secimini sifirla
-        setTimeout(function() { restoreFileInput.value = ''; }, 100);
+        setTimeout(function() { restoreFileInput.value = ''; if(restoreFileNameEl) restoreFileNameEl.textContent=''; }, 500);
         return;
     }
 
-    backupStatus.textContent = 'Dosya okunuyor...';
+    backupStatus.textContent = 'Dosya okunuyor: ' + file.name + ' ...';
     backupStatus.style.color = '#2563eb';
 
-    var reader = new FileReader();
+    // iOS icin kucuk gecikme: dosya sistemi erisimi tam hazir olmadan okuma baslatma
+    setTimeout(function() {
+        var reader = new FileReader();
     reader.onload = function(event) {
         try {
             var addedCount = 0;
@@ -676,16 +691,24 @@ restoreFileInput.addEventListener('change', function(e) {
             backupStatus.style.color = '#dc2626';
         }
         // Dosya okuma tamamlandiktan SONRA sifirla
-        setTimeout(function() { restoreFileInput.value = ''; }, 200);
+        setTimeout(function() {
+            restoreFileInput.value = '';
+            // Dosya adi etiketini temizleme (2 saniye sonra, mesaj okunsin diye)
+            setTimeout(function() { if(restoreFileNameEl) restoreFileNameEl.textContent = ''; }, 2000);
+        }, 200);
     };
 
     reader.onerror = function() {
         backupStatus.textContent = 'Dosya okuma hatasi. Lutfen tekrar deneyin.';
         backupStatus.style.color = '#dc2626';
-        setTimeout(function() { restoreFileInput.value = ''; }, 200);
+        setTimeout(function() {
+            restoreFileInput.value = '';
+            if(restoreFileNameEl) restoreFileNameEl.textContent = '';
+        }, 500);
     };
 
     reader.readAsText(file, 'UTF-8');
+    }, 100); // iOS gecikme sonu
 });
 
 // --- GECMIS AYLAR ARSIVI ---
