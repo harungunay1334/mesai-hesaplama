@@ -32,12 +32,14 @@ function init() {
     const storedEntries = localStorage.getItem('workEntries');
     if (storedEntries) {
         try {
-            // Convert the string back into a JavaScript array
-            workEntries = JSON.parse(storedEntries).map(normalizeEntryHours);
+            // Convert the string back into a JavaScript array and normalize hours
+            const parsedEntries = JSON.parse(storedEntries);
+            workEntries = parsedEntries.map(normalizeEntryHours);
             localStorage.setItem('workEntries', JSON.stringify(workEntries));
         } catch (e) {
             console.error('Kayıtlar yüklenirken hata oluştu, eski veriler korunuyor:', e);
-            workEntries = JSON.parse(storedEntries); // Eski veriyi geri yükle
+            // Eski veriyi olduğu gibi yükle
+            workEntries = JSON.parse(storedEntries);
         }
     }
 
