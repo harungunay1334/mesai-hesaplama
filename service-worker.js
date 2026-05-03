@@ -1,6 +1,6 @@
 // ÖNEMLİ NOT: Cache versiyonu değiştiğinde sadece uygulama dosyaları güncellenir.
 // Kullanıcı verileri localStorage'da saklanır ve cache güncellemeleri bu veriyi HİÇBİR ZAMAN SİLMEZ.
-var CACHE_NAME = 'saat-takip-v4';
+var CACHE_NAME = 'saat-takip-v5';
 var ASSETS = [
     './',
     './index.html',
