@@ -281,9 +281,29 @@ function calculateSummaries() {
 
 // Mesai Hesabi (Pazartesi baslayan haftalara gore 30 saat uzeri)
 function calculateOvertime() {
+    var today = new Date();
+    var currentMonth = today.getMonth();
+    var currentYear = today.getFullYear();
+    var previousMonthDate = new Date(currentYear, currentMonth - 1, 1);
+    var previousMonth = previousMonthDate.getMonth();
+    var previousYear = previousMonthDate.getFullYear();
+
     var weeklySummary = {};
 
     workEntries.forEach(function(entry) {
+        var entryDate = new Date(entry.date);
+        var entryMonth = entryDate.getMonth();
+        var entryYear = entryDate.getFullYear();
+
+        // Sadece bu ay ve bir onceki ay kayitlarini dahil et
+        var isCurrentOrPreviousMonth =
+            (entryYear === currentYear && entryMonth === currentMonth) ||
+            (entryYear === previousYear && entryMonth === previousMonth);
+
+        if (!isCurrentOrPreviousMonth) {
+            return;
+        }
+
         var mondayDate = getMonday(entry.date);
         var mondayStr = mondayDate.toISOString().split('T')[0];
 
