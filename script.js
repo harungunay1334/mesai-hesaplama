@@ -58,19 +58,6 @@ function calculateHours(start, end) {
     let diffInMs = endDate - startDate;
     let diffInHours = diffInMs / (1000 * 60 * 60);
 
-    // 12:00 - 13:00 arasi mola kesintisi hesaplamasi
-    let breakStart = new Date(2000, 0, 1, 12, 0);
-    let breakEnd = new Date(2000, 0, 1, 13, 0);
-
-    // Calisma suresi mola saatine denk geliyorsa kesilecek sureyi hesapla
-    let overlapStart = new Date(Math.max(startDate.getTime(), breakStart.getTime()));
-    let overlapEnd = new Date(Math.min(endDate.getTime(), breakEnd.getTime()));
-
-    if (overlapStart < overlapEnd) {
-        let breakDuration = (overlapEnd - overlapStart) / (1000 * 60 * 60);
-        diffInHours -= breakDuration;
-    }
-
     return Math.round(diffInHours * 100) / 100; // Round to 2 decimal places to keep it clean
 }
 
@@ -210,10 +197,24 @@ function updateUI() {
 function renderTable() {
     entriesBody.innerHTML = ''; // Clear out the old table rows
 
-    // Sort entries so the newest date is at the top
-    var sortedEntries = workEntries.slice().sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+    var today = new Date();
+    var currentMonth = today.getMonth();
+    var currentYear = today.getFullYear();
 
-    sortedEntries.forEach(function(entry) {
+    // Only show entries from the current month
+    var monthEntries = workEntries.slice().filter(function(entry) {
+        var entryDate = new Date(entry.date);
+        return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear;
+    }).sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+
+    if (monthEntries.length === 0) {
+        var emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = '<td colspan="5" style="text-align:center; padding:20px; color:#6b7280;">Bu ay icin kayit bulunamadi.</td>';
+        entriesBody.appendChild(emptyRow);
+        return;
+    }
+
+    monthEntries.forEach(function(entry) {
         // Create a new HTML table row
         var row = document.createElement('tr');
 
