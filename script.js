@@ -581,26 +581,40 @@ restoreFileInput.addEventListener('change', function(e) {
                     backupStatus.style.color = '#d97706';
                 }
             } else if (isCsv) {
-                // BOM karakterini temizle
-                var csvText = event.target.result.replace(/^\uFEFF/, '');
+                // BOM karakterini temizle + Windows \r\n satir sonlarini normalize et
+                var csvText = event.target.result
+                    .replace(/^\uFEFF/, '')   // BOM
+                    .replace(/\r\n/g, '\n')   // Windows CRLF → LF
+                    .replace(/\r/g, '\n');    // Eski Mac CR → LF
+
                 var lines = csvText.split('\n').filter(function(line) { return line.trim().length > 0; });
 
                 if (lines.length < 2) {
-                    backupStatus.textContent = 'CSV dosyasi bos veya gecersiz.';
+                    backupStatus.textContent = 'CSV dosyasi bos veya gecersiz. (' + lines.length + ' satir bulundu)';
                     backupStatus.style.color = '#dc2626';
                     setTimeout(function() { restoreFileInput.value = ''; }, 100);
                     return;
                 }
 
-                // Baslik kontrol — BOM temizlendikten sonra kontrol et
-                var header = lines[0].split(';');
-                var firstCol = header[0].trim();
-                if (header.length < 4 || firstCol !== 'Tarih') {
-                    backupStatus.textContent = 'CSV dosyasi beklenen formatta degil. (Baslik: ' + firstCol + ')';
-                    backupStatus.style.color = '#dc2626';
-                    setTimeout(function() { restoreFileInput.value = ''; }, 100);
-                    return;
-                }
+                // Ayrac tespit et: ; mi , mi?
+                var delimiter = lines[0].indexOf(';') !== -1 ? ';' : ',';
+
+                // Baslik satirini parse et ve sutun indekslerini bul
+                var headerCols = lines[0].split(delimiter).map(function(h) { return h.trim().toLowerCase(); });
+
+                // Sutun indekslerini tespit et (esnek eslestirme)
+                var colDate = -1, colStart = -1, colEnd = -1;
+                headerCols.forEach(function(col, idx) {
+                    var c = col.replace(/[^a-zA-Z\u00C0-\u024F]/g, '').toLowerCase();
+                    if (c.startsWith('tar')) colDate = idx;       // Tarih
+                    if (c.startsWith('ba') || c.startsWith('gir') || c.startsWith('start')) colStart = idx; // Baslangic / Giris
+                    if (c.startsWith('bi') || c.startsWith('end') || c.startsWith('cik')) colEnd = idx;    // Bitis / Cikis
+                });
+
+                // Eger kolon bulunamazsa sira tabanli dene (Tarih, Gun, Baslangic, Bitis formatı)
+                if (colDate === -1) colDate = 0;
+                if (colStart === -1) colStart = (headerCols.length >= 3) ? 2 : 1;
+                if (colEnd === -1) colEnd = (headerCols.length >= 4) ? 3 : 2;
 
                 // Mevcut tarihleri topla (ayni tarihte tekrar eklememe icin)
                 var existingDates = {};
@@ -608,14 +622,21 @@ restoreFileInput.addEventListener('change', function(e) {
                     existingDates[entry.date] = true;
                 });
 
+                var skippedCount = 0;
                 for (var i = 1; i < lines.length; i++) {
-                    var csvParts = lines[i].split(';');
-                    if (csvParts.length >= 4) {
-                        var date = csvParts[0].trim();
-                        var startTime = csvParts[2].trim();
-                        var endTime = csvParts[3].trim();
+                    var csvParts = lines[i].split(delimiter);
+                    if (csvParts.length > Math.max(colDate, colStart, colEnd)) {
+                        var date      = (csvParts[colDate]  || '').replace(/"/g, '').trim();
+                        var startTime = (csvParts[colStart] || '').replace(/"/g, '').trim();
+                        var endTime   = (csvParts[colEnd]   || '').replace(/"/g, '').trim();
 
-                        if (date && startTime && endTime && !existingDates[date]) {
+                        // Tarih formatini dogrula (YYYY-MM-DD)
+                        var validDate  = /^\d{4}-\d{2}-\d{2}$/.test(date);
+                        // Saat formatini dogrula (HH:MM)
+                        var validStart = /^\d{1,2}:\d{2}$/.test(startTime);
+                        var validEnd   = /^\d{1,2}:\d{2}$/.test(endTime);
+
+                        if (validDate && validStart && validEnd && !existingDates[date]) {
                             var hours = calculateHours(startTime, endTime);
                             var newEntry = {
                                 id: Date.now().toString() + '_' + i,
@@ -628,16 +649,23 @@ restoreFileInput.addEventListener('change', function(e) {
                             workEntries.push(newEntry);
                             addedCount++;
                             existingDates[date] = true;
+                        } else if (validDate && existingDates[date]) {
+                            skippedCount++;
                         }
                     }
                 }
 
                 if (addedCount > 0) {
-                    backupStatus.textContent = 'CSV puantaji basariyla yuklendi. ' + addedCount + ' yeni kayit eklendi.';
+                    var msg = 'CSV puantaji basariyla yuklendi. ' + addedCount + ' yeni kayit eklendi.';
+                    if (skippedCount > 0) msg += ' (' + skippedCount + ' kayit zaten vardi, atildi.)';
+                    backupStatus.textContent = msg;
                     backupStatus.style.color = '#059669';
-                } else {
-                    backupStatus.textContent = 'CSV puantajindaki tum kayitlar zaten mevcut. Yeni kayit eklenmedi.';
+                } else if (skippedCount > 0) {
+                    backupStatus.textContent = 'CSV puantajindaki tum kayitlar (' + skippedCount + ' adet) zaten mevcut. Yeni kayit eklenmedi.';
                     backupStatus.style.color = '#d97706';
+                } else {
+                    backupStatus.textContent = 'CSV dosyasindan hicbir kayit yuklenemedi. Dosya formatini kontrol edin. (Ayrac: "' + delimiter + '", Sutunlar: ' + headerCols.join(' | ') + ')';
+                    backupStatus.style.color = '#dc2626';
                 }
             }
 
