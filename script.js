@@ -367,6 +367,40 @@ exportBtn.addEventListener('click', function () {
     document.body.removeChild(link);
 });
 
+window.exportMonthToCsv = function(year, month) {
+    var monthEntries = workEntries.filter(function(entry) {
+        var d = new Date(entry.date);
+        return d.getFullYear() === year && d.getMonth() === month;
+    }).sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+
+    if (monthEntries.length === 0) {
+        alert('Bu ay icin kayit bulunamadi.');
+        return;
+    }
+
+    var gunler = ["Pazar", "Pazartesi", "Sali", "Carsamba", "Persembe", "Cuma", "Cumartesi"];
+    var BOM = "\uFEFF";
+    var csvContent = BOM + "Tarih;Gun;Baslangic Saati;Bitis Saati;Toplam Saat\n";
+
+    monthEntries.forEach(function(entry) {
+        var d = new Date(entry.date);
+        var gunAdi = gunler[d.getDay()];
+        var row = entry.date + ';' + gunAdi + ';' + entry.startTime + ';' + entry.endTime + ';"' + formatHours(entry.hours) + '"';
+        csvContent += row + "\n";
+    });
+
+    var monthLabel = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik'][month];
+    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    var url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'Puantaj_' + monthLabel + '_' + year + '.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
 // Gunluk dokumantasyonu Word olarak disa aktar
 window.exportWord = function (id) {
     var entry = workEntries.find(function(e) { return e.id === id; });
@@ -594,7 +628,10 @@ window.showMonthDetail = function(key) {
     var totalHours = 0;
     monthEntries.forEach(function(e) { totalHours += e.hours; });
 
-    var html = '<button onclick="showMonthList()" style="background:#7c3aed; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; margin-bottom:15px; font-size:0.9rem;">&larr; Aylara Don</button>' +
+    var html = '<div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:15px;">' +
+        '<button onclick="showMonthList()" style="background:#7c3aed; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.9rem;">&larr; Aylara Don</button>' +
+        '<button onclick="exportMonthToCsv(' + year + ',' + month + ')" style="background:#10b981; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.9rem;">Excel\'e Aktar</button>' +
+        '</div>' +
         '<h2 style="color:#1f2937; margin-bottom:5px;">' + label + '</h2>' +
         '<p style="color:#6b7280; margin-bottom:15px;">Toplam: <strong style="color:#7c3aed;">' + formatHours(totalHours) + '</strong> | ' + monthEntries.length + ' gun</p>' +
         '<div class="table-container"><table style="width:100%; border-collapse:collapse;">' +
