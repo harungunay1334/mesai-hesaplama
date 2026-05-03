@@ -19,13 +19,21 @@ var backupBtn = document.getElementById('backup-btn');
 var restoreFileInput = document.getElementById('restore-file');
 var backupStatus = document.getElementById('backup-status');
 
+function normalizeEntryHours(entry) {
+    if (entry.startTime && entry.endTime) {
+        entry.hours = calculateHours(entry.startTime, entry.endTime);
+    }
+    return entry;
+}
+
 // Initialize the app
 function init() {
     // Attempt to get saved data from the browser's localStorage
     const storedEntries = localStorage.getItem('workEntries');
     if (storedEntries) {
         // Convert the string back into a JavaScript array
-        workEntries = JSON.parse(storedEntries);
+        workEntries = JSON.parse(storedEntries).map(normalizeEntryHours);
+        localStorage.setItem('workEntries', JSON.stringify(workEntries));
     }
 
     // Set the default date input to today's date
@@ -508,6 +516,7 @@ restoreFileInput.addEventListener('change', function(e) {
             var addedCount = 0;
             data.entries.forEach(function(entry) {
                 if (!existingIds[entry.id]) {
+                    normalizeEntryHours(entry);
                     workEntries.push(entry);
                     addedCount++;
                 }
